@@ -20,5 +20,7 @@ from SalesLT.SalesOrderHeader
 order by DueDate;
 
 --zad 3
-
+select SalesOrderId, TotalDue,
+TotalDue - lag (totaldue) over (order by SalesOrderId)
+from SalesLT.SalesOrderHeader;
 	
