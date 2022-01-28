@@ -7,4 +7,18 @@ left outer join SalesLT.SalesOrderDetail as D
 on P.ProductID = D.ProductID
 group by P.ProductNumber
 order by count(D.SalesOrderDetailID) Desc;
+
 -- zad 2
+select Year(DueDate) as year, 
+Month(DueDate) as month,
+Day(DueDate) as day, 
+sum(TotalDue) over (Partition by Day(DueDate) order by DueDate) as DailyDue,
+sum(TotalDue) over (Partition by Month(DueDate) order by DueDate) as MonthlyDue,
+sum(TotalDue) over (Partition by Year(DueDate) order by DueDate) as YearlyDue,
+sum(TotalDue) over() as Total
+from SalesLT.SalesOrderHeader
+order by DueDate;
+
+--zad 3
+
+	
