@@ -82,6 +82,116 @@ where listprice =
 		(select max(listprice) 
 		from SalesLT.Product as w2));
 
-select distinct listprice
+-- co to jest za tworek ;)
+select distinct listprice, Name
 from SalesLT.Product
+where listprice <
+	(select top 1 max(listprice) 
+	from SalesLT.Product
+	group by listprice
+	order by listprice desc)
 order by ListPrice desc;
+
+-- sposób z ksi¹¿ki
+select name, listprice 
+from SalesLT.Product as Z
+where 1 =
+	(select count(distinct listprice)
+	from SalesLT.Product as W
+	where W.ListPrice > Z.ListPrice);
+
+-- najwiêksze i najmniejsze op³aty w danym dniu poniesione przez poszczególnych sprzedawców
+
+select cast (orderdate as date), sum(totaldue),  customerId
+from SalesLT.SalesOrderHeader
+group by CustomerID, OrderDate
+order by 1, 2 desc;
+
+
+select Z.SalesOrderid, Z.customerId, z.orderdate, 'Max Freight: ' + Cast(z.freight as char(7))
+from SalesLT.SalesOrderHeader as Z
+where Z.Freight =
+	(select max(W.Freight)
+	from SalesLT.SalesOrderHeader as w
+	where w.OrderDate = z.orderdate)
+union all
+select Z.SalesOrderid, Z.customerId, z.orderdate, 'Min Freight: ' + Cast(z.freight as char(7))
+from SalesLT.SalesOrderHeader as Z
+where Z.Freight =
+	(select min(W.Freight)
+	from SalesLT.SalesOrderHeader as w
+	where w.OrderDate = z.orderdate);
+
+-- podzapytania a z³¹czenia
+select c.lastname, h.totaldue
+from SalesLT.Customer as c
+join SalesLT.SalesOrderHeader as h
+on c.CustomerID = h.CustomerID
+where TotalDue > 100000
+order by LastName;
+
+-- tabele pochodne jako przyk³ad zapytañ wewnêtrznych zwracaj¹cych dane tabelaryczne
+select name, color 
+from (
+	select name, listprice, size, weight, color, sellenddate 
+	from SalesLT.Product
+	where SellEndDate is null
+	and ListPrice > 50) as w
+where color = 'Black';
+
+-- liczba klientów o ró¿nych tytu³ach mieszkaj¹cych w ró¿nych krajach i miastach
+
+select Fulltitle, adress, count(Z.Addressid) as nr
+from
+	(select 'title: ' + C.title as Fulltitle, A.CountryRegion + ' ' + A.City as adress, CA.AddressId
+from SalesLT.Customer as C
+join SalesLT.CustomerAddress as CA
+	on C.CustomerID = CA.CustomerID
+join SalesLT.Address as A
+	 on CA.AddressID = A.AddressID) as Z
+where Fulltitle = 'Title: Ms.'
+group by Fulltitle, adress;
+
+-- 
+select SalesOrderID, totaldue,
+ROW_NUMBER() over (order by totaldue desc) as Rnk
+from SalesLT.SalesOrderHeader;
+
+select * 
+from (
+select SalesOrderID, totaldue,
+ROW_NUMBER() over (order by totaldue desc) as Rnk
+from SalesLT.SalesOrderHeader) as w
+where Rnk between 10 and 15;
+
+-- CTE (common Table Expressions)
+-- liczba klientek z poszczególnych krajów i miast
+
+with CTE as (
+select 'title: ' + C.title as Fulltitle, A.CountryRegion + ' ' + A.City as adress, CA.AddressId
+from SalesLT.Customer as C
+join SalesLT.CustomerAddress as CA
+	on C.CustomerID = CA.CustomerID
+join SalesLT.Address as A
+	 on CA.AddressID = A.AddressID
+	 )
+select Fulltitle, adress, count(addressid) as Nr
+from CTE
+where Fulltitle = 'Title: Ms.'
+Group by Fulltitle, adress;
+
+--podzia³ zamówien na 5 przedzia³ów
+
+select salesOrderid, totaldue,
+ntile(5) over (order by salesorderid desc) as page
+from SalesLT.SalesOrderHeader;
+
+with Pages as (
+select salesOrderid, totaldue,
+ntile(5) over (order by salesorderid desc) as page
+from SalesLT.SalesOrderHeader)
+select page, min(totaldue) as MIN, max(Totaldue) as MAX, AVG(Totaldue) as AVG
+from Pages
+group by page
+order by page;
+
